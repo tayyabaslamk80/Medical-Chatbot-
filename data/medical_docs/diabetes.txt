@@ -1,0 +1,40 @@
+DIABETES MELLITUS
+
+Definition: Metabolic disorder causing high blood sugar.
+
+Types:
+1. Type 1 Diabetes:
+   - Autoimmune
+   - Usually childhood onset
+   - Requires insulin
+
+2. Type 2 Diabetes:
+   - Insulin resistance
+   - Most common type
+   - Linked to obesity
+
+Symptoms:
+- Excessive thirst
+- Frequent urination
+- Unexplained weight loss
+- Fatigue
+- Blurred vision
+
+Diagnosis:
+- Fasting glucose >=126 mg/dL
+- Random glucose >=200 mg/dL with symptoms
+- HbA1c >=6.5%
+
+Management:
+- Blood sugar monitoring
+- Healthy diet
+- Regular exercise
+- Medications
+- Regular check-ups
+
+Complications:
+- Heart disease
+- Nerve damage
+- Kidney disease
+- Eye damage
+- Foot problems

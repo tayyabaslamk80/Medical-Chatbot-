@@ -1,0 +1,42 @@
+HYPERTENSION (High Blood Pressure)
+
+Definition: Chronic condition with elevated blood pressure.
+
+Classification:
+- Normal: <120/80 mmHg
+- Elevated: 120-129/<80 mmHg
+- Stage 1: 130-139/80-89 mmHg
+- Stage 2: >=140/90 mmHg
+
+Symptoms:
+Often no symptoms. When present: headaches, dizziness, nosebleeds.
+
+Risk Factors:
+- Age over 65
+- Family history
+- Obesity
+- High salt diet
+- Lack of exercise
+- Smoking
+- Excessive alcohol
+
+Treatment:
+1. Lifestyle changes:
+   - DASH diet
+   - Exercise 30 mins/day
+   - Weight loss
+   - Reduce salt
+   - Limit alcohol
+   
+2. Medications:
+   - ACE inhibitors
+   - Beta blockers
+   - Diuretics
+   - Calcium channel blockers
+
+Complications if untreated:
+- Heart attack
+- Stroke
+- Kidney failure
+- Vision loss
+- Heart failure

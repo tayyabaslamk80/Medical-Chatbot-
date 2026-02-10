@@ -1,0 +1,3822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏥 Medical AI Assistant</title>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #10a37f;
+            --primary-dark: #0d8b6a;
+            --sidebar-bg: #f7f7f8;
+            --sidebar-border: #e5e5e5;
+            --chat-bg: #ffffff;
+            --user-bg: #ffffff;
+            --assistant-bg: #f7f7f8;
+            --text-primary: #374151;
+            --text-secondary: #6b7280;
+            --border-color: #d1d5db;
+            --hover-bg: #e5e5e5;
+            --input-bg: #ffffff;
+            --message-user: #10a37f;
+            --message-assistant: #ffffff;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --cache-color: #059669;
+            --fresh-color: #d97706;
+            --thumbs-up-color: #10a37f;
+            --thumbs-down-color: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        body {
+            background-color: var(--chat-bg);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: 260px;
+            background-color: var(--sidebar-bg);
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--sidebar-border);
+            transition: width 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--sidebar-border);
+        }
+
+        .new-chat-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .new-chat-btn:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .chat-history {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .history-item {
+            padding: 12px;
+            margin: 4px 0;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+            position: relative;
+            border: 1px solid transparent;
+        }
+
+        .history-item:hover {
+            background-color: var(--hover-bg);
+            border-color: var(--border-color);
+        }
+
+        .history-item.active {
+            background-color: rgba(16, 163, 127, 0.1);
+            border-color: var(--primary-color);
+            color: var(--text-primary);
+        }
+
+        .history-item-content {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .history-title {
+            font-size: 14px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text-primary);
+        }
+
+        .history-preview {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: none;
+        }
+
+        .history-dot-menu {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: none;
+            transition: all 0.2s;
+        }
+
+        .history-item:hover .history-dot-menu {
+            display: block;
+        }
+
+        .history-dot-menu:hover {
+            background-color: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .history-actions-menu {
+            position: absolute;
+            right: 10px;
+            top: 40px;
+            background-color: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 0;
+            min-width: 180px;
+            z-index: 1000;
+            display: none;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .history-actions-menu.active {
+            display: block;
+        }
+
+        .history-action-item {
+            padding: 10px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            color: var(--text-primary);
+            transition: all 0.2s;
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: left;
+        }
+
+        .history-action-item:hover {
+            background-color: var(--hover-bg);
+        }
+
+        .history-action-item i {
+            width: 16px;
+            color: var(--text-secondary);
+        }
+
+        .history-action-item.delete {
+            color: #ef4444;
+        }
+
+        .history-action-item.delete i {
+            color: #ef4444;
+        }
+
+        .sidebar-footer {
+            padding: 15px;
+            border-top: 1px solid var(--sidebar-border);
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .user-profile:hover {
+            background-color: var(--hover-bg);
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .user-info {
+            flex: 1;
+        }
+
+        .user-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .user-email {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Main Chat Area */
+        .main-chat {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--chat-bg);
+        }
+
+        .chat-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--sidebar-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: white;
+        }
+
+        .chat-title-header {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .source-badge {
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+
+        .source-badge.rag {
+            background-color: rgba(16, 163, 127, 0.1);
+            color: var(--primary-color);
+            border: 1px solid rgba(16, 163, 127, 0.3);
+        }
+
+        .source-badge.model {
+            background-color: rgba(156, 163, 175, 0.1);
+            color: #6b7280;
+            border: 1px solid rgba(156, 163, 175, 0.3);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-btn {
+            background: none;
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .header-btn:hover {
+            background-color: var(--hover-bg);
+        }
+
+        .toggle-sidebar-btn {
+            display: none;
+        }
+
+        /* NEW: RAG Toggle Button Styles */
+        .rag-toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: auto;
+            margin-right: 15px;
+        }
+
+        .rag-toggle-btn {
+            background: #f0f0f0;
+            border: 2px solid #ddd;
+            border-radius: 20px;
+            width: 60px;
+            height: 30px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            padding: 0 4px;
+        }
+
+        .rag-toggle-btn.active {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .toggle-slider {
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .rag-toggle-btn.active .toggle-slider {
+            transform: translateX(30px);
+        }
+
+        .rag-toggle-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .rag-status {
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            background: #f0f0f0;
+            color: var(--text-secondary);
+            margin-left: 5px;
+            font-weight: 500;
+        }
+
+        .rag-status.rag-on {
+            background-color: rgba(16, 163, 127, 0.1);
+            color: var(--primary-color);
+        }
+
+        .rag-status.rag-off {
+            background-color: rgba(156, 163, 175, 0.1);
+            color: #6b7280;
+        }
+
+        /* Chat Messages */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .message {
+            display: flex;
+            gap: 20px;
+            max-width: 768px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 8px 0;
+        }
+
+        .message.user {
+            background-color: var(--user-bg);
+        }
+
+        .message.assistant {
+            background-color: var(--assistant-bg);
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 16px;
+        }
+
+        .avatar.user {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .avatar.assistant {
+            background-color: #6b7280;
+            color: white;
+        }
+
+        .message-content {
+            flex: 1;
+            padding-top: 2px;
+        }
+
+        .message-text {
+            line-height: 1.6;
+            font-size: 15px;
+            white-space: pre-wrap;
+            color: var(--text-primary);
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .message-sender {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .message-time {
+            opacity: 0.7;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* NEW: Cache Metadata Styles */
+        .message-metadata {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+            font-size: 12px;
+            color: var(--text-secondary);
+            flex-wrap: wrap;
+        }
+
+        .cache-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-weight: 500;
+            font-size: 11px;
+        }
+
+        .cache-status.cached {
+            background-color: rgba(5, 150, 105, 0.1);
+            color: var(--cache-color);
+            border: 1px solid rgba(5, 150, 105, 0.2);
+        }
+
+        .cache-status.fresh {
+            background-color: rgba(217, 119, 6, 0.1);
+            color: var(--fresh-color);
+            border: 1px solid rgba(217, 119, 6, 0.2);
+        }
+
+        .response-time {
+            background-color: rgba(156, 163, 175, 0.1);
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            color: var(--text-secondary);
+        }
+
+        .source-badge-inline {
+            background-color: rgba(16, 163, 127, 0.1);
+            padding: 3px 8px;
+            border-radius: 10px;
+            color: var(--primary-color);
+        }
+
+        /* ADDED FEEDBACK: Feedback Button Styles */
+        .message-feedback {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .feedback-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+            color: var(--text-secondary);
+        }
+
+        .feedback-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .feedback-btn.thumbs-up:hover {
+            background-color: rgba(16, 163, 127, 0.1);
+            border-color: var(--thumbs-up-color);
+            color: var(--thumbs-up-color);
+        }
+
+        .feedback-btn.thumbs-down:hover {
+            background-color: rgba(239, 68, 68, 0.1);
+            border-color: var(--thumbs-down-color);
+            color: var(--thumbs-down-color);
+        }
+
+        .feedback-btn.active {
+            border-width: 2px;
+        }
+
+        .feedback-btn.thumbs-up.active {
+            background-color: rgba(16, 163, 127, 0.15);
+            border-color: var(--thumbs-up-color);
+            color: var(--thumbs-up-color);
+        }
+
+        .feedback-btn.thumbs-down.active {
+            background-color: rgba(239, 68, 68, 0.15);
+            border-color: var(--thumbs-down-color);
+            color: var(--thumbs-down-color);
+        }
+
+        .feedback-stats {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-left: 8px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .feedback-stats.thumbs-up {
+            color: var(--thumbs-up-color);
+        }
+
+        .feedback-stats.thumbs-down {
+            color: var(--thumbs-down-color);
+        }
+
+        .message-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .action-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            opacity: 0.7;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            opacity: 1;
+        }
+
+        .message-sources {
+            margin-top: 12px;
+            padding: 12px;
+            background-color: white;
+            border-radius: 8px;
+            border-left: 3px solid var(--primary-color);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .source-item {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            padding: 4px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .source-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .source-preview {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+            opacity: 0.8;
+        }
+
+        /* NEW: Cache Stats Panel */
+        .cache-stats-panel {
+            margin: 15px 20px;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            display: none;
+        }
+
+        .cache-stats-panel.active {
+            display: block;
+        }
+
+        .cache-stats-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .cache-stats-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cache-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+        }
+
+        .cache-stat-item {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .cache-stat-label {
+            font-size: 11px;
+            color: #6b7280;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .cache-stat-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .cache-stat-value.cached {
+            color: var(--cache-color);
+        }
+
+        .cache-stat-value.fresh {
+            color: var(--fresh-color);
+        }
+
+        /* ADDED FEEDBACK: Feedback Modal Styles */
+        .feedback-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .feedback-modal.active {
+            display: flex;
+        }
+
+        .feedback-modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .feedback-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .feedback-modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .feedback-type-icon {
+            font-size: 24px;
+        }
+
+        .feedback-type-icon.thumbs-up {
+            color: var(--thumbs-up-color);
+        }
+
+        .feedback-type-icon.thumbs-down {
+            color: var(--thumbs-down-color);
+        }
+
+        .close-feedback-modal {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            font-size: 20px;
+        }
+
+        .close-feedback-modal:hover {
+            background: var(--hover-bg);
+        }
+
+        .feedback-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .feedback-rating {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .rating-stars {
+            display: flex;
+            gap: 4px;
+        }
+
+        .rating-star {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #d1d5db;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .rating-star:hover {
+            transform: scale(1.2);
+        }
+
+        .rating-star.active {
+            color: #f59e0b;
+        }
+
+        .feedback-comment {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .feedback-comment textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
+        }
+
+        .feedback-comment textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .feedback-modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .feedback-cancel-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .feedback-cancel-btn:hover {
+            background: var(--hover-bg);
+        }
+
+        .feedback-submit-btn {
+            background: var(--primary-color);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: white;
+        }
+
+        .feedback-submit-btn:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Chat Input Area */
+        .chat-input-container {
+            padding: 20px;
+            border-top: 1px solid var(--sidebar-border);
+            background-color: white;
+            position: relative;
+        }
+
+        .input-wrapper {
+            max-width: 768px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .chat-input {
+            width: 100%;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px 60px 16px 20px;
+            color: var(--text-primary);
+            font-size: 15px;
+            resize: none;
+            min-height: 56px;
+            max-height: 200px;
+            outline: none;
+            line-height: 1.5;
+            transition: all 0.2s;
+        }
+
+        .chat-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(16, 163, 127, 0.1);
+        }
+
+        .input-actions {
+            position: absolute;
+            right: 12px;
+            bottom: 12px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn-input {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 4px;
+            font-size: 18px;
+            transition: all 0.2s;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .action-btn-input:hover {
+            color: var(--text-primary);
+            background-color: var(--hover-bg);
+        }
+
+        .send-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .send-btn:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: flex;
+            gap: 4px;
+            padding: 8px 0;
+        }
+
+        .loading-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--text-secondary);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .loading-dot:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        /* Welcome Screen */
+        .welcome-screen {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            text-align: center;
+            background: linear-gradient(135deg, #f0f7ff 0%, #f8fafc 100%);
+        }
+
+        .welcome-icon {
+            font-size: 64px;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+
+        .welcome-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .welcome-subtitle {
+            font-size: 16px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            line-height: 1.6;
+            margin-bottom: 32px;
+        }
+
+        /* File Upload */
+        .file-upload-container {
+            margin: 10px 0;
+            padding: 15px;
+            background: #f9fafb;
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-upload-container:hover {
+            border-color: var(--primary-color);
+            background: #f0f9ff;
+        }
+
+        .file-preview {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: #f9fafb;
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 1px solid #e5e7eb;
+        }
+
+        .file-info {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .file-size {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .remove-file {
+            background: none;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+        }
+
+        .remove-file:hover {
+            background: #fee2e2;
+        }
+
+        /* Attachment Menu */
+        .attachment-menu {
+            position: absolute;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            padding: 15px;
+            z-index: 100;
+            min-width: 200px;
+            display: none;
+            animation: fadeInUp 0.2s ease;
+            border: 1px solid var(--border-color);
+        }
+
+        .attachment-menu.active {
+            display: block;
+        }
+
+        .attachment-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .attachment-option:hover {
+            background: var(--hover-bg);
+        }
+
+        .attachment-option i {
+            color: var(--primary-color);
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .attachment-option span {
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        /* Voice Status */
+        .voice-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            padding: 15px 20px;
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            gap: 15px;
+            animation: slideIn 0.3s ease;
+            border: 1px solid var(--border-color);
+        }
+
+        .voice-status.active {
+            display: flex;
+        }
+
+        .voice-status.recording {
+            background: #ef4444;
+            color: white;
+            border-color: #dc2626;
+        }
+
+        .voice-wave {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            height: 30px;
+        }
+
+        .voice-bar {
+            width: 4px;
+            height: 10px;
+            background: var(--primary-color);
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .voice-status.recording .voice-bar {
+            animation: wave 1.2s ease-in-out infinite;
+            background: white;
+        }
+
+        .voice-status.recording .voice-bar:nth-child(1) { animation-delay: 0s; }
+        .voice-status.recording .voice-bar:nth-child(2) { animation-delay: 0.15s; }
+        .voice-status.recording .voice-bar:nth-child(3) { animation-delay: 0.3s; }
+        .voice-status.recording .voice-bar:nth-child(4) { animation-delay: 0.45s; }
+        .voice-status.recording .voice-bar:nth-child(5) { animation-delay: 0.6s; }
+
+        .voice-timer {
+            font-family: monospace;
+            font-size: 14px;
+            color: var(--text-secondary);
+            min-width: 100px;
+        }
+
+        .voice-status.recording .voice-timer {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .voice-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .stop-recording-btn {
+            background: white;
+            color: #ef4444;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .stop-recording-btn:hover {
+            background: rgba(255, 255, 255, 0.9);
+            transform: translateY(-2px);
+        }
+
+        .voice-status.recording .stop-recording-btn {
+            background: white;
+            color: #ef4444;
+        }
+
+        /* Typing Indicator */
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 15px 20px;
+            background: var(--assistant-bg);
+            border-radius: 18px;
+            align-self: flex-start;
+            width: fit-content;
+            display: none;
+        }
+
+        .typing-indicator.active {
+            display: flex;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--text-secondary);
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-10px); }
+        }
+
+        /* Pinecone Upload */
+        .pinecone-upload-btn {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+            width: 100%;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+        }
+
+        .pinecone-upload-btn:hover {
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+        }
+
+        .pinecone-upload-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .pinecone-upload-btn.uploading {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            animation: pulse 1.5s infinite;
+        }
+
+        .pinecone-upload-btn.success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .pinecone-upload-btn.error {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .document-process-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .process-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .process-option:hover {
+            background: rgba(16, 163, 127, 0.1);
+        }
+
+        .process-option input[type="radio"] {
+            accent-color: var(--primary-color);
+        }
+
+        .process-option-label {
+            font-size: 14px;
+            color: var(--text-primary);
+            flex: 1;
+        }
+
+        .process-option-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                z-index: 1000;
+                transform: translateX(-100%);
+                box-shadow: var(--shadow-lg);
+            }
+            
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            
+            .toggle-sidebar-btn {
+                display: flex;
+            }
+            
+            .message {
+                gap: 12px;
+            }
+            
+            .chat-input-container {
+                padding: 15px;
+            }
+            
+            .attachment-menu {
+                left: 10px;
+                right: 10px;
+                min-width: auto;
+                transform: none;
+                left: 10px;
+                right: 10px;
+                width: calc(100% - 20px);
+            }
+            
+            .rag-toggle-container {
+                margin-left: 10px;
+                margin-right: 10px;
+            }
+            
+            .rag-toggle-label {
+                font-size: 12px;
+            }
+            
+            .voice-status {
+                left: 10px;
+                right: 10px;
+                width: calc(100% - 20px);
+            }
+            
+            .cache-stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .feedback-modal-content {
+                width: 95%;
+                padding: 16px;
+            }
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+
+        /* Modals */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+        }
+
+        .close-modal:hover {
+            background: var(--hover-bg);
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes wave {
+            0%, 100% { 
+                height: 10px; 
+                background: var(--primary-color);
+            }
+            50% { 
+                height: 25px; 
+                background: var(--primary-dark);
+            }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes heartBeat {
+            0% { transform: scale(1); }
+            14% { transform: scale(1.3); }
+            28% { transform: scale(1); }
+            42% { transform: scale(1.3); }
+            70% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Chat Interface -->
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <button class="new-chat-btn" id="newChatBtn">
+                    <i class="fas fa-plus"></i>
+                    New chat
+                </button>
+            </div>
+            
+            <div class="chat-history" id="chatHistory">
+                <!-- Chat items will be loaded here -->
+            </div>
+            
+            <div class="sidebar-footer">
+                <div class="user-profile" id="userProfile">
+                    <div class="user-avatar" id="userAvatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-info">
+                        <div class="user-name" id="userName">Guest</div>
+                        <div class="user-email" id="userEmail">Sign in to save chats</div>
+                    </div>
+                    <button class="history-dot-menu" id="userMenuBtn">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Chat Area -->
+        <div class="main-chat">
+            <div class="chat-header">
+                <div class="chat-title-header">
+                    <button class="toggle-sidebar-btn header-btn" id="toggleSidebarBtn">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <span id="currentChatTitle">Medical AI Assistant</span>
+                    <span class="source-badge model" id="currentSource">Model</span>
+                </div>
+                
+                <div class="header-actions">
+                    <!-- NEW: RAG Toggle Button -->
+                    <div class="rag-toggle-container">
+                        <span class="rag-toggle-label">Medical Docs:</span>
+                        <button class="rag-toggle-btn" id="ragToggleBtn">
+                            <div class="toggle-slider"></div>
+                        </button>
+                        <span class="rag-status rag-on" id="ragStatus">ON</span>
+                    </div>
+                    
+                    <!-- NEW: Cache Stats Toggle Button -->
+                    <button class="header-btn" id="cacheStatsBtn" title="Show cache statistics">
+                        <i class="fas fa-tachometer-alt"></i>
+                        Cache
+                    </button>
+                    
+                    <!-- ADDED FEEDBACK: Feedback Stats Button -->
+                    <button class="header-btn" id="feedbackStatsBtn" title="Feedback statistics">
+                        <i class="fas fa-thumbs-up"></i>
+                        Feedback
+                    </button>
+                    
+                    <button class="header-btn" id="clearChatBtn" title="Clear chat">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    <button class="header-btn" id="loginBtn">
+                        <i class="fab fa-google"></i>
+                        Sign In
+                    </button>
+                </div>
+            </div>
+            
+            <div class="chat-messages" id="chatMessages">
+                <!-- Welcome message -->
+                <div class="welcome-screen" id="welcomeScreen">
+                    <div class="welcome-icon">
+                        <i class="fas fa-stethoscope"></i>
+                    </div>
+                    <h1 class="welcome-title">Medical AI Assistant</h1>
+                    <p class="welcome-subtitle">
+                        Your intelligent medical companion powered by AI. 
+                        Get instant medical guidance, symptom analysis, and health advice 
+                        from our advanced AI assistant. Sign in to save your chat history.
+                    </p>
+                    <button class="new-chat-btn" id="startChatBtn" style="width: auto;">
+                        <i class="fas fa-comment-medical"></i>
+                        Start New Conversation
+                    </button>
+                </div>
+            </div>
+            
+            <!-- NEW: Cache Statistics Panel -->
+            <div class="cache-stats-panel" id="cacheStatsPanel">
+                <div class="cache-stats-header">
+                    <div class="cache-stats-title">
+                        <i class="fas fa-tachometer-alt"></i>
+                        Cache Performance
+                    </div>
+                    <button class="header-btn" id="closeCacheStatsBtn">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="cache-stats-grid" id="cacheStatsGrid">
+                    <!-- Stats will be populated by JavaScript -->
+                </div>
+            </div>
+            
+            <!-- Typing indicator -->
+            <div class="typing-indicator" id="typingIndicator">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <span>AI is typing...</span>
+            </div>
+            
+            <!-- File Preview -->
+            <div class="file-preview" id="filePreview" style="display: none;">
+                <i class="fas fa-file-medical" id="fileIcon"></i>
+                <div class="file-info">
+                    <div class="file-name" id="fileName">document.pdf</div>
+                    <div class="file-size" id="fileSize">2.4 MB</div>
+                </div>
+                <button class="remove-file" id="removeFileBtn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <!-- Pinecone Upload Button -->
+            <button class="pinecone-upload-btn" id="pineconeUploadBtn" style="display: none; margin: 10px 20px;">
+                <i class="fas fa-database"></i> Upload to Pinecone RAG
+            </button>
+            
+            <!-- Document Process Options -->
+            <div class="document-process-options" id="documentProcessOptions" style="display: none;">
+                <h4 style="margin: 0 0 10px 0; font-size: 14px; color: var(--text-primary);">📄 Document Processing:</h4>
+                <div class="process-option">
+                    <input type="radio" id="processRag" name="processOption" value="rag" checked>
+                    <div>
+                        <div class="process-option-label">📚 Add to RAG Knowledge Base</div>
+                        <div class="process-option-desc">Upload to Pinecone for AI to learn from this document</div>
+                    </div>
+                </div>
+                <div class="process-option">
+                    <input type="radio" id="processChat" name="processOption" value="chat">
+                    <div>
+                        <div class="process-option-label">💬 Chat with Document</div>
+                        <div class="process-option-desc">Send document with your message for analysis</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Chat Input -->
+            <div class="chat-input-container">
+                <!-- Attachment Menu -->
+                <div class="attachment-menu" id="attachmentMenu">
+                    <button class="attachment-option" data-type="image">
+                        <i class="fas fa-image"></i>
+                        <span>Upload Image</span>
+                    </button>
+                    <button class="attachment-option" data-type="document">
+                        <i class="fas fa-file-medical"></i>
+                        <span>Upload Document</span>
+                    </button>
+                    <button class="attachment-option" data-type="camera">
+                        <i class="fas fa-camera"></i>
+                        <span>Take Photo</span>
+                    </button>
+                    <button class="attachment-option" data-type="prescription">
+                        <i class="fas fa-prescription-bottle-medical"></i>
+                        <span>Upload Prescription</span>
+                    </button>
+                </div>
+                
+                <div class="input-wrapper">
+                    <!-- File Upload Area -->
+                    <div class="file-upload-container" id="fileUploadArea" style="display: none;">
+                        <input type="file" id="fileInput" style="display: none;" accept=".pdf,.doc,.docx,.txt,.csv,.xlsx,.xls,.ppt,.pptx,.jpg,.jpeg,.png">
+                        <div onclick="document.getElementById('fileInput').click()">
+                            <i class="fas fa-cloud-upload-alt" style="font-size: 32px; color: #6b7280; margin-bottom: 10px;"></i>
+                            <div style="font-weight: 500; color: var(--text-primary); margin-bottom: 5px;">
+                                Upload Medical Document
+                            </div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">
+                                Click to upload PDF, DOC, CSV, or images (Max 10MB)
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <textarea 
+                        class="chat-input" 
+                        id="messageInput" 
+                        placeholder="Describe your symptoms or ask a medical question..."
+                        rows="1"
+                        disabled
+                    ></textarea>
+                    <div class="input-actions">
+                        <button class="action-btn-input" id="attachmentBtn">
+                            <i class="fas fa-paperclip"></i>
+                        </button>
+                        <button class="action-btn-input" id="voiceBtn">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                        <button class="send-btn" id="sendBtn" disabled>
+                            <i class="fas fa-paper-plane"></i>
+                            Send
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Voice Recording Status -->
+    <div class="voice-status" id="voiceStatus">
+        <div class="voice-wave">
+            <div class="voice-bar"></div>
+            <div class="voice-bar"></div>
+            <div class="voice-bar"></div>
+            <div class="voice-bar"></div>
+            <div class="voice-bar"></div>
+        </div>
+        <div class="voice-timer" id="voiceTimer">00:00</div>
+        <div class="voice-controls">
+            <button class="stop-recording-btn" id="stopRecordingBtnModal">
+                <i class="fas fa-stop"></i> Stop Recording
+            </button>
+        </div>
+    </div>
+
+    <!-- ADDED FEEDBACK: Feedback Modal -->
+    <div class="feedback-modal" id="feedbackModal">
+        <div class="feedback-modal-content">
+            <div class="feedback-modal-header">
+                <div class="feedback-modal-title">
+                    <i class="feedback-type-icon" id="feedbackTypeIcon"></i>
+                    <span id="feedbackModalTitle">Feedback</span>
+                </div>
+                <button class="close-feedback-modal" id="closeFeedbackModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="feedback-form">
+                <div class="feedback-rating">
+                    <label for="ratingStars">Rating (Optional):</label>
+                    <div class="rating-stars" id="ratingStars">
+                        <button class="rating-star" data-rating="1">★</button>
+                        <button class="rating-star" data-rating="2">★</button>
+                        <button class="rating-star" data-rating="3">★</button>
+                        <button class="rating-star" data-rating="4">★</button>
+                        <button class="rating-star" data-rating="5">★</button>
+                    </div>
+                </div>
+                <div class="feedback-comment">
+                    <label for="feedbackComment">Additional Comments (Optional):</label>
+                    <textarea 
+                        id="feedbackComment" 
+                        placeholder="Please provide any additional feedback about this response..."
+                        maxlength="500"
+                    ></textarea>
+                    <div style="font-size: 12px; color: var(--text-secondary); text-align: right;">
+                        <span id="charCount">0</span>/500 characters
+                    </div>
+                </div>
+            </div>
+            <div class="feedback-modal-actions">
+                <button class="feedback-cancel-btn" id="feedbackCancelBtn">Cancel</button>
+                <button class="feedback-submit-btn" id="feedbackSubmitBtn">Submit Feedback</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden File Input -->
+    <input type="file" id="fileInputHidden" style="display: none;" accept=".pdf,.doc,.docx,.txt,.csv,.xlsx,.xls,.ppt,.pptx,.jpg,.jpeg,.png,.webp">
+
+    <script>
+        // ====================
+        // State Management
+        // ====================
+        let currentSessionId = null;
+        let sessions = [];
+        let currentUser = null;
+        let selectedFile = null;
+        let isTyping = false;
+        let isRecording = false;
+        let recognition = null;
+        let recordingTimer = null;
+        let recordingStartTime = null;
+        let finalTranscript = '';
+        let activeActionsMenu = null;
+        let pinnedChats = JSON.parse(localStorage.getItem('medicalAssistant_pinnedChats') || '{}');
+        let chatNames = JSON.parse(localStorage.getItem('medicalAssistant_chatNames') || '{}');
+        
+        // NEW: RAG toggle state (default to true)
+        let useRag = localStorage.getItem('medicalAssistant_useRag') !== 'false';
+        
+        // NEW: Cache performance tracking
+        let cachePerformance = {
+            totalRequests: 0,
+            cachedResponses: 0,
+            freshResponses: 0,
+            totalResponseTime: 0,
+            fastestResponse: Infinity,
+            slowestResponse: 0,
+            responseTimes: [],
+            sessionStart: Date.now()
+        };
+
+        // ADDED FEEDBACK: Feedback state
+        let feedbackState = {
+            currentMessageId: null,
+            currentSessionId: null,
+            feedbackType: null,
+            selectedRating: 0,
+            feedbackStats: {
+                total: 0,
+                thumbsUp: 0,
+                thumbsDown: 0,
+                averageRating: 0
+            }
+        };
+
+        // ====================
+        // Firebase Configuration
+        // ====================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBdlUy2q1MqNibKmBx0IFSoWA7cgvrnXmE",
+            authDomain: "medicalchatbot-c1936.firebaseapp.com",
+            projectId: "medicalchatbot-c1936",
+            storageBucket: "medicalchatbot-c1936.firebasestorage.app",
+            messagingSenderId: "233030461414",
+            appId: "1:233030461414:web:f99f08c444054d8d2a1827"
+        };
+
+        // Initialize Firebase
+        let firebaseApp, auth;
+
+        // ====================
+        // DOM Elements
+        // ====================
+        const sidebar = document.getElementById('sidebar');
+        const chatHistory = document.getElementById('chatHistory');
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const newChatBtn = document.getElementById('newChatBtn');
+        const startChatBtn = document.getElementById('startChatBtn');
+        const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
+        const attachmentBtn = document.getElementById('attachmentBtn');
+        const voiceBtn = document.getElementById('voiceBtn');
+        const fileInputHidden = document.getElementById('fileInputHidden');
+        const fileUploadArea = document.getElementById('fileUploadArea');
+        const filePreview = document.getElementById('filePreview');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const fileIcon = document.getElementById('fileIcon');
+        const removeFileBtn = document.getElementById('removeFileBtn');
+        const loginBtn = document.getElementById('loginBtn');
+        const userProfile = document.getElementById('userProfile');
+        const userAvatar = document.getElementById('userAvatar');
+        const userName = document.getElementById('userName');
+        const userEmail = document.getElementById('userEmail');
+        const userMenuBtn = document.getElementById('userMenuBtn');
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        const clearChatBtn = document.getElementById('clearChatBtn');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const attachmentMenu = document.getElementById('attachmentMenu');
+        const pineconeUploadBtn = document.getElementById('pineconeUploadBtn');
+        const documentProcessOptions = document.getElementById('documentProcessOptions');
+        const voiceStatus = document.getElementById('voiceStatus');
+        const voiceTimer = document.getElementById('voiceTimer');
+        const stopRecordingBtnModal = document.getElementById('stopRecordingBtnModal');
+        
+        // NEW: RAG toggle elements
+        const ragToggleBtn = document.getElementById('ragToggleBtn');
+        const ragStatus = document.getElementById('ragStatus');
+        const currentSource = document.getElementById('currentSource');
+        
+        // NEW: Cache elements
+        const cacheStatsBtn = document.getElementById('cacheStatsBtn');
+        const cacheStatsPanel = document.getElementById('cacheStatsPanel');
+        const closeCacheStatsBtn = document.getElementById('closeCacheStatsBtn');
+        const cacheStatsGrid = document.getElementById('cacheStatsGrid');
+        
+        // ADDED FEEDBACK: Feedback elements
+        const feedbackStatsBtn = document.getElementById('feedbackStatsBtn');
+        const feedbackModal = document.getElementById('feedbackModal');
+        const feedbackTypeIcon = document.getElementById('feedbackTypeIcon');
+        const feedbackModalTitle = document.getElementById('feedbackModalTitle');
+        const closeFeedbackModal = document.getElementById('closeFeedbackModal');
+        const feedbackCancelBtn = document.getElementById('feedbackCancelBtn');
+        const feedbackSubmitBtn = document.getElementById('feedbackSubmitBtn');
+        const ratingStars = document.getElementById('ratingStars');
+        const feedbackComment = document.getElementById('feedbackComment');
+        const charCount = document.getElementById('charCount');
+
+        // ====================
+        // Initialize App
+        // ====================
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeFirebase();
+            setupEventListeners();
+            
+            // NEW: Initialize RAG toggle
+            initializeRagToggle();
+            
+            // NEW: Initialize cache panel
+            initializeCachePanel();
+            
+            // ADDED FEEDBACK: Initialize feedback system
+            initializeFeedbackSystem();
+            
+            // Initialize attachment menu
+            initializeAttachmentMenu();
+            
+            // Check if user is already logged in
+            checkInitialAuthState();
+            
+            // Load cache performance from localStorage
+            loadCachePerformance();
+        });
+
+        // ====================
+        // ADDED FEEDBACK: Initialize Feedback System
+        // ====================
+        function initializeFeedbackSystem() {
+            // Feedback button click handler
+            feedbackStatsBtn.addEventListener('click', showFeedbackStats);
+            
+            // Feedback modal handlers
+            closeFeedbackModal.addEventListener('click', closeFeedbackModalHandler);
+            feedbackCancelBtn.addEventListener('click', closeFeedbackModalHandler);
+            feedbackSubmitBtn.addEventListener('click', submitFeedbackHandler);
+            
+            // Rating stars
+            ratingStars.addEventListener('click', function(e) {
+                if (e.target.classList.contains('rating-star')) {
+                    const rating = parseInt(e.target.getAttribute('data-rating'));
+                    setRating(rating);
+                }
+            });
+            
+            // Character count for feedback comment
+            feedbackComment.addEventListener('input', function() {
+                charCount.textContent = this.value.length;
+                if (this.value.length > 500) {
+                    this.value = this.value.substring(0, 500);
+                    charCount.textContent = 500;
+                }
+            });
+        }
+        
+        function showFeedbackStats() {
+            if (!currentUser) {
+                showMessage('warning', 'Please sign in to view feedback statistics');
+                return;
+            }
+            
+            fetchFeedbackStats();
+        }
+        
+        async function fetchFeedbackStats() {
+            try {
+                const token = await currentUser.getIdToken();
+                const response = await fetch('/api/chatbot/feedback/stats', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.stats) {
+                        feedbackState.feedbackStats = data.stats;
+                        
+                        const stats = data.stats;
+                        const message = `📊 Feedback Statistics:
+                        
+Total Feedback: ${stats.total}
+👍 Thumbs Up: ${stats.thumbs_up} (${stats.thumbs_up_percentage || 0}%)
+👎 Thumbs Down: ${stats.thumbs_down}
+⭐ Average Rating: ${stats.average_rating || 'N/A'}
+                        
+Thank you for your feedback!`;
+                        
+                        showMessage('info', message);
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching feedback stats:', error);
+                showMessage('error', 'Failed to load feedback statistics');
+            }
+        }
+        
+        function openFeedbackModal(messageId, sessionId, feedbackType) {
+            feedbackState.currentMessageId = messageId;
+            feedbackState.currentSessionId = sessionId;
+            feedbackState.feedbackType = feedbackType;
+            feedbackState.selectedRating = 0;
+            
+            // Update modal UI based on feedback type
+            if (feedbackType === 'thumbs_up') {
+                feedbackTypeIcon.className = 'feedback-type-icon thumbs-up fas fa-thumbs-up';
+                feedbackModalTitle.textContent = '👍 Helpful Response';
+            } else {
+                feedbackTypeIcon.className = 'feedback-type-icon thumbs-down fas fa-thumbs-down';
+                feedbackModalTitle.textContent = '👎 Could Be Better';
+            }
+            
+            // Reset form
+            feedbackComment.value = '';
+            charCount.textContent = '0';
+            resetRatingStars();
+            
+            // Show modal
+            feedbackModal.classList.add('active');
+            
+            // Check if feedback already exists
+            checkExistingFeedback(messageId, sessionId);
+        }
+        
+        function closeFeedbackModalHandler() {
+            feedbackModal.classList.remove('active');
+            feedbackState.currentMessageId = null;
+            feedbackState.currentSessionId = null;
+            feedbackState.feedbackType = null;
+            feedbackState.selectedRating = 0;
+        }
+        
+        function setRating(rating) {
+            feedbackState.selectedRating = rating;
+            
+            // Update stars UI
+            const stars = ratingStars.querySelectorAll('.rating-star');
+            stars.forEach((star, index) => {
+                if (index < rating) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+        }
+        
+        function resetRatingStars() {
+            const stars = ratingStars.querySelectorAll('.rating-star');
+            stars.forEach(star => {
+                star.classList.remove('active');
+            });
+        }
+        
+        async function checkExistingFeedback(messageId, sessionId) {
+            if (!currentUser) return;
+            
+            try {
+                const token = await currentUser.getIdToken();
+                const response = await fetch(`/api/chatbot/feedback/${sessionId}/${messageId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.has_feedback) {
+                        // Pre-fill existing feedback
+                        const feedback = data.feedback;
+                        if (feedback.rating) {
+                            setRating(feedback.rating);
+                        }
+                        if (feedback.user_comment) {
+                            feedbackComment.value = feedback.user_comment;
+                            charCount.textContent = feedback.user_comment.length;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking existing feedback:', error);
+            }
+        }
+        
+        async function submitFeedbackHandler() {
+            if (!feedbackState.currentMessageId || !feedbackState.currentSessionId || !feedbackState.feedbackType) {
+                return;
+            }
+            
+            try {
+                const token = await currentUser.getIdToken();
+                const feedbackData = {
+                    message_id: feedbackState.currentMessageId,
+                    session_id: feedbackState.currentSessionId,
+                    feedback_type: feedbackState.feedbackType,
+                    user_comment: feedbackComment.value.trim(),
+                    rating: feedbackState.selectedRating > 0 ? feedbackState.selectedRating : null
+                };
+                
+                const response = await fetch('/api/chatbot/feedback', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(feedbackData)
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        // Update UI to show feedback was submitted
+                        updateMessageFeedbackUI(feedbackState.currentMessageId, feedbackState.feedbackType);
+                        
+                        // Show success message
+                        const message = feedbackState.feedbackType === 'thumbs_up' 
+                            ? '👍 Thank you! Your positive feedback helps improve the AI.'
+                            : '👎 Thank you for your feedback. We\'ll use it to improve the AI responses.';
+                        
+                        showMessage('success', message);
+                        
+                        // Close modal
+                        closeFeedbackModalHandler();
+                        
+                        // Update feedback stats
+                        fetchFeedbackStats();
+                    }
+                } else {
+                    throw new Error('Failed to submit feedback');
+                }
+            } catch (error) {
+                console.error('Error submitting feedback:', error);
+                showMessage('error', 'Failed to submit feedback. Please try again.');
+            }
+        }
+        
+        function updateMessageFeedbackUI(messageId, feedbackType) {
+            // Find the message element and update its feedback buttons
+            const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+            if (messageElement) {
+                const thumbsUpBtn = messageElement.querySelector('.feedback-btn.thumbs-up');
+                const thumbsDownBtn = messageElement.querySelector('.feedback-btn.thumbs-down');
+                
+                if (feedbackType === 'thumbs_up') {
+                    thumbsUpBtn.classList.add('active');
+                    thumbsDownBtn.classList.remove('active');
+                    
+                    // Add animation
+                    thumbsUpBtn.style.animation = 'heartBeat 1s';
+                    setTimeout(() => {
+                        thumbsUpBtn.style.animation = '';
+                    }, 1000);
+                } else {
+                    thumbsDownBtn.classList.add('active');
+                    thumbsUpBtn.classList.remove('active');
+                }
+            }
+        }
+
+        // ====================
+        // NEW: Initialize Cache Panel
+        // ====================
+        function initializeCachePanel() {
+            cacheStatsBtn.addEventListener('click', toggleCacheStatsPanel);
+            closeCacheStatsBtn.addEventListener('click', toggleCacheStatsPanel);
+            updateCacheStatsDisplay();
+        }
+        
+        function toggleCacheStatsPanel() {
+            cacheStatsPanel.classList.toggle('active');
+        }
+        
+        function updateCacheStatsDisplay() {
+            const avgResponseTime = cachePerformance.totalRequests > 0 
+                ? Math.round(cachePerformance.totalResponseTime / cachePerformance.totalRequests)
+                : 0;
+            
+            const cacheHitRate = cachePerformance.totalRequests > 0
+                ? Math.round((cachePerformance.cachedResponses / cachePerformance.totalRequests) * 100)
+                : 0;
+            
+            const sessionDuration = Math.round((Date.now() - cachePerformance.sessionStart) / 1000 / 60); // in minutes
+            
+            cacheStatsGrid.innerHTML = `
+                <div class="cache-stat-item">
+                    <div class="cache-stat-label">Total Requests</div>
+                    <div class="cache-stat-value">${cachePerformance.totalRequests}</div>
+                </div>
+                <div class="cache-stat-item">
+                    <div class="cache-stat-label">Cache Hits</div>
+                    <div class="cache-stat-value cached">${cachePerformance.cachedResponses} (${cacheHitRate}%)</div>
+                </div>
+                <div class="cache-stat-item">
+                    <div class="cache-stat-label">Avg Response Time</div>
+                    <div class="cache-stat-value">${avgResponseTime}ms</div>
+                </div>
+                <div class="cache-stat-item">
+                    <div class="cache-stat-label">Fastest Response</div>
+                    <div class="cache-stat-value cached">${cachePerformance.fastestResponse === Infinity ? 'N/A' : cachePerformance.fastestResponse + 'ms'}</div>
+                </div>
+                <div class="cache-stat-item">
+                    <div class="cache-stat-label">Slowest Response</div>
+                    <div class="cache-stat-value fresh">${cachePerformance.slowestResponse}ms</div>
+                </div>
+                <div class="cache-stat-item">
+                    <div class="cache-stat-label">Session Duration</div>
+                    <div class="cache-stat-value">${sessionDuration} min</div>
+                </div>
+            `;
+        }
+        
+        function saveCachePerformance() {
+            localStorage.setItem('medicalAssistant_cachePerformance', JSON.stringify(cachePerformance));
+        }
+        
+        function loadCachePerformance() {
+            const saved = localStorage.getItem('medicalAssistant_cachePerformance');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                cachePerformance = {
+                    ...cachePerformance,
+                    ...parsed,
+                    sessionStart: Date.now() // Reset session start time
+                };
+            }
+        }
+
+        // ====================
+        // NEW: Check Initial Auth State
+        // ====================
+        async function checkInitialAuthState() {
+            setTimeout(async () => {
+                if (auth && auth.currentUser) {
+                    currentUser = auth.currentUser;
+                    await handleUserSignedIn(currentUser);
+                    
+                    await loadSessions();
+                    
+                    if (sessions.length > 0) {
+                        const mostRecentSession = sessions.sort((a, b) => 
+                            new Date(b.last_activity || 0) - new Date(a.last_activity || 0)
+                        )[0];
+                        
+                        await loadSpecificChatSession(mostRecentSession.session_id);
+                    } else {
+                        chatMessages.innerHTML = '';
+                        welcomeScreen.style.display = 'flex';
+                    }
+                }
+            }, 500);
+        }
+
+        // ====================
+        // NEW: Attachment Menu Functions
+        // ====================
+        function initializeAttachmentMenu() {
+            const attachmentOptions = attachmentMenu.querySelectorAll('.attachment-option');
+            attachmentOptions.forEach(option => {
+                option.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const type = this.getAttribute('data-type');
+                    handleAttachment(type);
+                });
+            });
+        }
+        
+        function toggleAttachmentMenu(event) {
+            if (event) {
+                event.stopPropagation();
+                event.preventDefault();
+            }
+            
+            const isActive = attachmentMenu.classList.contains('active');
+            
+            if (activeActionsMenu) {
+                activeActionsMenu.remove();
+                activeActionsMenu = null;
+            }
+            
+            if (!isActive) {
+                attachmentMenu.classList.add('active');
+                setTimeout(() => {
+                    document.addEventListener('click', closeAttachmentMenuOnClick);
+                }, 10);
+            } else {
+                closeAttachmentMenu();
+            }
+        }
+        
+        function closeAttachmentMenu() {
+            attachmentMenu.classList.remove('active');
+            document.removeEventListener('click', closeAttachmentMenuOnClick);
+        }
+        
+        function closeAttachmentMenuOnClick(event) {
+            if (!attachmentMenu.contains(event.target) && event.target !== attachmentBtn) {
+                closeAttachmentMenu();
+            }
+        }
+
+        // ====================
+        // NEW: RAG Toggle Functions
+        // ====================
+        function initializeRagToggle() {
+            updateRagToggleUI(useRag);
+            
+            ragToggleBtn.addEventListener('click', toggleRagMode);
+            
+            showRagStatusMessage();
+        }
+        
+        function toggleRagMode() {
+            useRag = !useRag;
+            localStorage.setItem('medicalAssistant_useRag', useRag);
+            updateRagToggleUI(useRag);
+            showRagStatusMessage();
+        }
+        
+        function updateRagToggleUI(isRagEnabled) {
+            if (isRagEnabled) {
+                ragToggleBtn.classList.add('active');
+                ragStatus.textContent = 'ON';
+                ragStatus.className = 'rag-status rag-on';
+                currentSource.textContent = 'RAG';
+                currentSource.className = 'source-badge rag';
+            } else {
+                ragToggleBtn.classList.remove('active');
+                ragStatus.textContent = 'OFF';
+                ragStatus.className = 'rag-status rag-off';
+                currentSource.textContent = 'Model';
+                currentSource.className = 'source-badge model';
+            }
+        }
+        
+        function showRagStatusMessage() {
+            if (useRag) {
+                showMessage('info', '📚 Medical Documents: ON - AI will use uploaded medical documents');
+            } else {
+                showMessage('info', '🤖 Medical Documents: OFF - AI will use general knowledge only');
+            }
+        }
+
+        // ====================
+        // Event Listeners Setup
+        // ====================
+        function setupEventListeners() {
+            newChatBtn.addEventListener('click', createNewChat);
+            startChatBtn.addEventListener('click', createNewChat);
+            sendBtn.addEventListener('click', sendMessage);
+            clearChatBtn.addEventListener('click', clearCurrentChat);
+            
+            messageInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+            
+            messageInput.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+                sendBtn.disabled = !this.value.trim();
+            });
+            
+            attachmentBtn.addEventListener('click', toggleAttachmentMenu);
+            fileInputHidden.addEventListener('change', handleFileSelect);
+            removeFileBtn.addEventListener('click', removeSelectedFile);
+            
+            loginBtn.addEventListener('click', signInWithGoogle);
+            
+            pineconeUploadBtn.addEventListener('click', uploadDocumentToPinecone);
+            
+            voiceBtn.addEventListener('click', toggleVoiceRecording);
+            stopRecordingBtnModal.addEventListener('click', stopVoiceRecording);
+            
+            toggleSidebarBtn.addEventListener('click', function() {
+                sidebar.classList.toggle('show');
+            });
+            
+            document.addEventListener('click', function(e) {
+                if (activeActionsMenu && !activeActionsMenu.contains(e.target) && 
+                    !e.target.closest('.history-dot-menu')) {
+                    closeActionsMenu();
+                }
+            });
+        }
+
+        // ====================
+        // Firebase Initialization
+        // ====================
+        function initializeFirebase() {
+            try {
+                if (typeof firebase === 'undefined') {
+                    console.error('Firebase SDK not loaded');
+                    return;
+                }
+                
+                firebaseApp = firebase.initializeApp(firebaseConfig);
+                auth = firebase.auth();
+                
+                auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+                
+                auth.onAuthStateChanged((user) => {
+                    if (user) {
+                        currentUser = user;
+                        handleUserSignedIn(user);
+                    } else {
+                        currentUser = null;
+                        handleUserSignedOut();
+                    }
+                });
+                
+                console.log('Firebase initialized');
+            } catch (error) {
+                console.error('Firebase initialization error:', error);
+            }
+        }
+
+        // ====================
+        // Auth Functions
+        // ====================
+        async function signInWithGoogle() {
+            try {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                provider.setCustomParameters({
+                    prompt: 'select_account'
+                });
+                
+                await auth.signInWithPopup(provider);
+                showMessage('success', 'Signed in successfully!');
+            } catch (error) {
+                console.error('Google sign-in error:', error);
+                showMessage('error', `Sign-in failed: ${error.message}`);
+            }
+        }
+
+        async function signOutUser() {
+            try {
+                await auth.signOut();
+                showMessage('success', 'Signed out successfully');
+            } catch (error) {
+                console.error('Sign-out error:', error);
+                showMessage('error', `Sign-out failed: ${error.message}`);
+            }
+        }
+
+        async function handleUserSignedIn(user) {
+            userName.textContent = user.displayName || 'User';
+            userEmail.textContent = user.email || 'User';
+            
+            if (user.photoURL) {
+                userAvatar.innerHTML = `<img src="${user.photoURL}" style="width:100%;height:100%;border-radius:50%;" alt="Avatar">`;
+            } else {
+                const initials = (user.displayName || user.email || 'U')
+                    .split(' ')
+                    .map(n => n[0])
+                    .join('')
+                    .toUpperCase()
+                    .substring(0, 2);
+                userAvatar.textContent = initials;
+                userAvatar.style.backgroundColor = getRandomColor();
+            }
+            
+            loginBtn.innerHTML = '<i class="fas fa-sign-out-alt"></i> Sign Out';
+            loginBtn.onclick = signOutUser;
+            
+            messageInput.disabled = false;
+            messageInput.placeholder = "Describe your symptoms or ask a medical question...";
+            
+            await loadSessions();
+            
+            if (sessions.length > 0) {
+                const mostRecentSession = sessions.sort((a, b) => 
+                    new Date(b.last_activity || 0) - new Date(a.last_activity || 0)
+                )[0];
+                
+                await loadSpecificChatSession(mostRecentSession.session_id);
+            } else {
+                chatMessages.innerHTML = '';
+                welcomeScreen.style.display = 'flex';
+            }
+            
+            userMenuBtn.onclick = showUserMenu;
+        }
+
+        function handleUserSignedOut() {
+            userName.textContent = 'Guest';
+            userEmail.textContent = 'Sign in to save chats';
+            userAvatar.innerHTML = '<i class="fas fa-user"></i>';
+            userAvatar.style.backgroundColor = '';
+            
+            loginBtn.innerHTML = '<i class="fab fa-google"></i> Sign In';
+            loginBtn.onclick = signInWithGoogle;
+            
+            messageInput.disabled = true;
+            messageInput.value = '';
+            messageInput.placeholder = "Please sign in to chat";
+            sendBtn.disabled = true;
+            
+            sessions = [];
+            renderChatHistory();
+            
+            chatMessages.innerHTML = '';
+            welcomeScreen.style.display = 'flex';
+            currentSessionId = null;
+            
+            userMenuBtn.onclick = null;
+        }
+
+        function showUserMenu(event) {
+            event.stopPropagation();
+            closeActionsMenu();
+            
+            const menu = document.createElement('div');
+            menu.className = 'history-actions-menu active';
+            menu.innerHTML = `
+                <button class="history-action-item" onclick="signOutUser()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Sign Out</span>
+                </button>
+                <button class="history-action-item" onclick="showMessage('info', 'Profile settings will be available soon')">
+                    <i class="fas fa-user-cog"></i>
+                    <span>Profile Settings</span>
+                </button>
+            `;
+            
+            const rect = userMenuBtn.getBoundingClientRect();
+            menu.style.position = 'fixed';
+            menu.style.top = rect.bottom + 'px';
+            menu.style.left = rect.left - 150 + 'px';
+            
+            document.body.appendChild(menu);
+            activeActionsMenu = menu;
+            
+            setTimeout(() => {
+                document.addEventListener('click', closeActionsMenu);
+            }, 10);
+        }
+
+        // ====================
+        // Chat Functions - UPDATED WITH FEEDBACK
+        // ====================
+        function createNewChat() {
+            if (!currentUser) {
+                showMessage('warning', 'Please sign in first');
+                return;
+            }
+            
+            currentSessionId = 'session_' + currentUser.uid + '_' + Date.now();
+            
+            chatMessages.innerHTML = '';
+            welcomeScreen.style.display = 'none';
+            
+            document.getElementById('currentChatTitle').textContent = 'New Chat';
+            
+            if (useRag) {
+                currentSource.textContent = 'RAG';
+                currentSource.className = 'source-badge rag';
+            } else {
+                currentSource.textContent = 'Model';
+                currentSource.className = 'source-badge model';
+            }
+            
+            addMessageWithMetadata('assistant', "Hello! I'm your Medical AI Assistant. I can help you with medical questions, symptom analysis, and health advice. You can upload medical documents (PDF, DOC, CSV) for me to analyze.", useRag ? 'rag' : 'model', null, false, 'N/A');
+            
+            showMessage('success', 'New chat started');
+        }
+
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            const processOption = document.querySelector('input[name="processOption"]:checked')?.value || 'chat';
+            
+            if ((!message && !selectedFile) || isTyping) return;
+            
+            if (message) {
+                addUserMessage(message);
+            }
+            
+            if (selectedFile) {
+                addFileAttachmentPreview(selectedFile);
+            }
+            
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
+            sendBtn.disabled = true;
+            
+            showTyping();
+            
+            // NEW: Track request start time for cache estimation
+            const requestStartTime = Date.now();
+            
+            try {
+                let responseData;
+                
+                if (selectedFile && processOption === 'chat') {
+                    const formData = new FormData();
+                    formData.append('file', selectedFile);
+                    if (message) {
+                        formData.append('message', message);
+                    }
+                    formData.append('session_id', currentSessionId || 'default');
+                    formData.append('use_rag', useRag);
+                    
+                    const token = currentUser ? await currentUser.getIdToken() : '';
+                    
+                    const response = await fetch('/api/chatbot/chat-with-document', {
+                        method: 'POST',
+                        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                        body: formData
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+                    }
+                    
+                    responseData = await response.json();
+                    
+                } else {
+                    const requestData = {
+                        message: message || 'Analyze this medical file',
+                        session_id: currentSessionId || 'default',
+                        use_rag: useRag
+                    };
+                    
+                    const token = currentUser ? await currentUser.getIdToken() : '';
+                    
+                    const response = await fetch('/api/chatbot/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(token && { 'Authorization': `Bearer ${token}` })
+                        },
+                        body: JSON.stringify(requestData)
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+                    }
+                    
+                    responseData = await response.json();
+                    
+                    if (selectedFile && processOption === 'rag') {
+                        setTimeout(() => {
+                            uploadDocumentToPinecone();
+                        }, 1000);
+                    }
+                }
+                
+                hideTyping();
+                
+                // NEW: Calculate response time and estimate cache status
+                const responseTime = Date.now() - requestStartTime;
+                
+                // Estimate if response was cached (fast response = likely cached)
+                // Different thresholds for different response types
+                let isCached = false;
+                if (responseData.is_rag || (useRag && responseData.source === 'rag')) {
+                    // RAG responses are typically slower, adjust threshold
+                    isCached = responseTime < 1500; // RAG responses under 1.5s = likely cached
+                } else {
+                    // Non-RAG responses
+                    isCached = responseTime < 800; // Under 800ms = likely cached
+                }
+                
+                // NEW: Update cache performance stats
+                updateCachePerformance(responseTime, isCached);
+                
+                let responseSource = 'model';
+                if (responseData.is_rag) {
+                    responseSource = 'rag';
+                } else if (useRag && responseData.source === 'rag') {
+                    responseSource = 'rag';
+                }
+                
+                if (responseData.response) {
+                    addMessageWithMetadata('assistant', responseData.response, responseSource, responseData.sources, isCached, responseTime, responseData.message_id);
+                    updateSourceBadge(responseSource);
+                    
+                    // NEW: Show cache notification for fast responses
+                    if (isCached && responseTime < 1000) {
+                        showMessage('info', `⚡ Fast response (${responseTime}ms) - likely from cache`);
+                    }
+                } else if (responseData.message) {
+                    addMessageWithMetadata('assistant', responseData.message, responseSource, responseData.sources, isCached, responseTime, responseData.message_id);
+                    updateSourceBadge(responseSource);
+                } else {
+                    addMessageWithMetadata('assistant', "I apologize, but I couldn't generate a response. Please try again.", responseSource, null, false, responseTime);
+                }
+                
+                if (selectedFile) {
+                    removeSelectedFile();
+                }
+                
+                if (currentUser) {
+                    await updateChatHistory();
+                }
+                
+            } catch (error) {
+                console.error('Error sending message:', error);
+                hideTyping();
+                addMessageWithMetadata('assistant', 
+                    "I'm having trouble connecting to the server. Please check your internet connection and try again.", 
+                    useRag ? 'rag' : 'model', 
+                    null, 
+                    false, 
+                    0
+                );
+                if (selectedFile) {
+                    removeSelectedFile();
+                }
+            }
+        }
+
+        // NEW: Update cache performance tracking
+        function updateCachePerformance(responseTime, isCached) {
+            cachePerformance.totalRequests++;
+            cachePerformance.totalResponseTime += responseTime;
+            cachePerformance.responseTimes.push(responseTime);
+            
+            if (isCached) {
+                cachePerformance.cachedResponses++;
+            } else {
+                cachePerformance.freshResponses++;
+            }
+            
+            if (responseTime < cachePerformance.fastestResponse) {
+                cachePerformance.fastestResponse = responseTime;
+            }
+            
+            if (responseTime > cachePerformance.slowestResponse) {
+                cachePerformance.slowestResponse = responseTime;
+            }
+            
+            // Keep only last 100 response times
+            if (cachePerformance.responseTimes.length > 100) {
+                cachePerformance.responseTimes.shift();
+            }
+            
+            updateCacheStatsDisplay();
+            saveCachePerformance();
+        }
+
+        function addUserMessage(message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message user';
+            
+            const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            messageDiv.innerHTML = `
+                <div class="avatar user">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="message-content">
+                    <div class="message-header">
+                        <div class="message-sender">
+                            <i class="fas fa-user"></i> You
+                        </div>
+                        <div class="message-time">${time}</div>
+                    </div>
+                    <div class="message-text">${escapeHtml(message)}</div>
+                </div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            welcomeScreen.style.display = 'none';
+        }
+
+        // UPDATED: Enhanced message function with cache metadata AND FEEDBACK BUTTONS
+        function addMessageWithMetadata(role, content, source = 'model', sources = null, isCached = false, responseTime = 'N/A', messageId = null) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            
+            const avatarIcon = role === 'user' ? 'fas fa-user' : 'fas fa-robot';
+            const avatarClass = role === 'user' ? 'user' : 'assistant';
+            const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            // Generate message ID if not provided
+            if (!messageId) {
+                messageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            }
+            
+            // Store message ID on the element
+            messageDiv.setAttribute('data-message-id', messageId);
+            
+            let sourcesHtml = '';
+            if (sources && sources.length > 0) {
+                sourcesHtml = `
+                    <div class="message-sources">
+                        <div style="font-size: 12px; margin-bottom: 8px; color: var(--primary-color);">
+                            <i class="fas fa-file-medical"></i> Source Documents:
+                        </div>
+                        ${sources.map(src => `
+                            <div class="source-item">
+                                <div><strong>${src.title || 'Document'}</strong> (Page ${src.page || 'N/A'})</div>
+                                <div class="source-preview">${src.preview || 'No preview available'}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            const cacheMetadataHtml = role === 'assistant' ? `
+                <div class="message-metadata">
+                    <span class="cache-status ${isCached ? 'cached' : 'fresh'}">
+                        ${isCached ? '⚡ Cached' : '🔄 Fresh'}
+                    </span>
+                    <span class="response-time">
+                        ${responseTime}ms
+                    </span>
+                    <span class="source-badge-inline">
+                        ${source === 'rag' ? '📚 RAG Documents' : '🤖 AI Knowledge'}
+                    </span>
+                </div>
+            ` : '';
+            
+            // ADDED FEEDBACK: Feedback buttons for assistant messages
+            const feedbackButtons = role === 'assistant' ? `
+                <div class="message-feedback">
+                    <button class="feedback-btn thumbs-up" onclick="openFeedbackModal('${messageId}', '${currentSessionId || 'default'}', 'thumbs_up')">
+                        <i class="fas fa-thumbs-up"></i> Helpful
+                    </button>
+                    <button class="feedback-btn thumbs-down" onclick="openFeedbackModal('${messageId}', '${currentSessionId || 'default'}', 'thumbs_down')">
+                        <i class="fas fa-thumbs-down"></i> Could be better
+                    </button>
+                </div>
+            ` : '';
+            
+            const ragIndicator = source === 'rag' ? 
+                '<span style="font-size: 10px; background: var(--primary-color); color: white; padding: 2px 6px; border-radius: 10px; margin-left: 8px;">RAG</span>' : 
+                '<span style="font-size: 10px; background: #6b7280; color: white; padding: 2px 6px; border-radius: 10px; margin-left: 8px;">Model</span>';
+            
+            messageDiv.innerHTML = `
+                <div class="avatar ${avatarClass}">
+                    <i class="${avatarIcon}"></i>
+                </div>
+                <div class="message-content">
+                    <div class="message-header">
+                        <div class="message-sender">
+                            <i class="fas fa-robot"></i> AI Medical Assistant
+                            ${ragIndicator}
+                        </div>
+                        <div class="message-time">${time}</div>
+                    </div>
+                    <div class="message-text">${escapeHtml(content)}</div>
+                    ${sourcesHtml}
+                    ${cacheMetadataHtml}
+                    ${feedbackButtons}
+                    <div class="message-actions">
+                        <button class="action-btn" onclick="copyToClipboard('${escapeHtml(content).replace(/'/g, "\\'")}')">
+                            <i class="far fa-copy"></i> Copy
+                        </button>
+                        <button class="action-btn" onclick="showMessage('info', 'Response time: ${responseTime}ms | Source: ${source} | Cached: ${isCached}')">
+                            <i class="fas fa-info-circle"></i> Info
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            welcomeScreen.style.display = 'none';
+        }
+
+        // Keep old function for backward compatibility
+        function addMessage(role, content, source = 'model', sources = null) {
+            addMessageWithMetadata(role, content, source, sources, false, 'N/A');
+        }
+
+        function addFileAttachmentPreview(file) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message user';
+            
+            const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const fileTypeIcon = getFileTypeIcon(file.type);
+            
+            messageDiv.innerHTML = `
+                <div class="avatar user">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="message-content">
+                    <div class="message-header">
+                        <div class="message-sender">
+                            <i class="fas fa-user"></i> You
+                        </div>
+                        <div class="message-time">${time}</div>
+                    </div>
+                    <div class="message-text">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <i class="${fileTypeIcon}" style="font-size: 20px; color: var(--primary-color);"></i>
+                            <div>
+                                <div style="font-weight: 500;">${escapeHtml(file.name)}</div>
+                                <div style="font-size: 12px; color: var(--text-secondary);">${formatFileSize(file.size)} • ${getFileType(file.type)}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function showTyping() {
+            isTyping = true;
+            typingIndicator.classList.add('active');
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function hideTyping() {
+            isTyping = false;
+            typingIndicator.classList.remove('active');
+        }
+
+        function updateSourceBadge(source) {
+            currentSource.textContent = source === 'rag' ? 'RAG' : 'Model';
+            currentSource.className = `source-badge ${source}`;
+        }
+
+        function clearCurrentChat() {
+            if (!confirm('Are you sure you want to clear this chat?')) return;
+            
+            chatMessages.innerHTML = '';
+            welcomeScreen.style.display = 'flex';
+            currentSessionId = null;
+            document.getElementById('currentChatTitle').textContent = 'Medical AI Assistant';
+            
+            if (useRag) {
+                currentSource.textContent = 'RAG';
+                currentSource.className = 'source-badge rag';
+            } else {
+                currentSource.textContent = 'Model';
+                currentSource.className = 'source-badge model';
+            }
+            
+            showMessage('info', 'Chat cleared');
+        }
+
+        // ====================
+        // File Handling
+        // ====================
+        function handleAttachment(type) {
+            closeAttachmentMenu();
+            
+            switch(type) {
+                case 'image':
+                    fileInputHidden.accept = 'image/*,.jpg,.jpeg,.png,.gif,.webp';
+                    fileInputHidden.click();
+                    break;
+                case 'document':
+                    fileInputHidden.accept = '.pdf,.doc,.docx,.txt,.csv,.xlsx,.xls,.ppt,.pptx,.rtf';
+                    fileInputHidden.click();
+                    break;
+                case 'camera':
+                    showMessage('info', 'Camera access would be requested in a production app');
+                    fileInputHidden.accept = 'image/*';
+                    fileInputHidden.setAttribute('capture', 'environment');
+                    fileInputHidden.click();
+                    fileInputHidden.removeAttribute('capture');
+                    break;
+                case 'prescription':
+                    fileInputHidden.accept = 'image/*,.pdf,.doc,.docx';
+                    fileInputHidden.click();
+                    break;
+            }
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const maxSize = 50 * 1024 * 1024;
+            if (file.size > maxSize) {
+                showMessage('error', `File size must be less than ${formatFileSize(maxSize)}`);
+                return;
+            }
+            
+            const fileName = file.name.toLowerCase();
+            const allowedExtensions = [
+                '.pdf', '.doc', '.docx', '.txt', '.csv', '.xlsx', '.xls', 
+                '.ppt', '.pptx', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.rtf'
+            ];
+            
+            const hasValidExtension = allowedExtensions.some(ext => fileName.endsWith(ext));
+            
+            if (!hasValidExtension) {
+                showMessage('error', 'Please upload a supported file type: PDF, DOC, TXT, CSV, Excel, PowerPoint, or image files');
+                return;
+            }
+            
+            selectedFile = file;
+            
+            updateFilePreview(file);
+            
+            if (fileName.endsWith('.pdf') || fileName.endsWith('.doc') || fileName.endsWith('.docx') || 
+                fileName.endsWith('.txt') || fileName.endsWith('.csv') || fileName.endsWith('.xlsx') || 
+                fileName.endsWith('.xls') || fileName.endsWith('.rtf')) {
+                pineconeUploadBtn.style.display = 'flex';
+                documentProcessOptions.style.display = 'block';
+            } else {
+                pineconeUploadBtn.style.display = 'none';
+                documentProcessOptions.style.display = 'none';
+            }
+            
+            showMessage('success', `File "${file.name}" selected`);
+        }
+
+        function updateFilePreview(file) {
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            
+            const fileNameLower = file.name.toLowerCase();
+            if (fileNameLower.endsWith('.pdf')) {
+                fileIcon.className = 'fas fa-file-pdf';
+            } else if (fileNameLower.endsWith('.doc') || fileNameLower.endsWith('.docx') || fileNameLower.endsWith('.rtf')) {
+                fileIcon.className = 'fas fa-file-word';
+            } else if (fileNameLower.endsWith('.xlsx') || fileNameLower.endsWith('.xls') || fileNameLower.endsWith('.csv')) {
+                fileIcon.className = 'fas fa-file-excel';
+            } else if (fileNameLower.endsWith('.ppt') || fileNameLower.endsWith('.pptx')) {
+                fileIcon.className = 'fas fa-file-powerpoint';
+            } else if (fileNameLower.endsWith('.jpg') || fileNameLower.endsWith('.jpeg') || 
+                       fileNameLower.endsWith('.png') || fileNameLower.endsWith('.gif') || 
+                       fileNameLower.endsWith('.webp')) {
+                fileIcon.className = 'fas fa-file-image';
+            } else if (fileNameLower.endsWith('.txt')) {
+                fileIcon.className = 'fas fa-file-alt';
+            } else {
+                fileIcon.className = 'fas fa-file-medical';
+            }
+            
+            filePreview.style.display = 'flex';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function removeSelectedFile() {
+            selectedFile = null;
+            filePreview.style.display = 'none';
+            pineconeUploadBtn.style.display = 'none';
+            documentProcessOptions.style.display = 'none';
+            fileInputHidden.value = '';
+        }
+
+        function getFileTypeIcon(mimeType) {
+            if (mimeType.startsWith('image/')) return 'fas fa-image';
+            if (mimeType.includes('pdf')) return 'fas fa-file-pdf';
+            if (mimeType.includes('word') || mimeType.includes('document') || mimeType.includes('rtf')) return 'fas fa-file-word';
+            if (mimeType.includes('excel') || mimeType.includes('spreadsheet') || mimeType.includes('csv')) return 'fas fa-file-excel';
+            if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) return 'fas fa-file-powerpoint';
+            if (mimeType.includes('text')) return 'fas fa-file-alt';
+            return 'fas fa-file-medical';
+        }
+
+        function getFileType(mimeType) {
+            if (mimeType.startsWith('image/')) return 'Image';
+            if (mimeType.includes('pdf')) return 'PDF Document';
+            if (mimeType.includes('word') || mimeType.includes('document') || mimeType.includes('rtf')) return 'Word Document';
+            if (mimeType.includes('excel') || mimeType.includes('spreadsheet') || mimeType.includes('csv')) return 'Excel Spreadsheet';
+            if (mimeType.includes('powerpoint') || mimeType.includes('presentation')) return 'PowerPoint';
+            if (mimeType.includes('text')) return 'Text File';
+            return 'Document';
+        }
+
+        // ====================
+        // Pinecone/RAG Document Upload
+        // ====================
+        async function uploadDocumentToPinecone() {
+            if (!selectedFile || !currentUser) {
+                showMessage('warning', 'Please select a file first');
+                return;
+            }
+            
+            try {
+                pineconeUploadBtn.classList.add('uploading');
+                pineconeUploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading to Pinecone...';
+                pineconeUploadBtn.disabled = true;
+                
+                const token = await currentUser.getIdToken();
+                const formData = new FormData();
+                
+                formData.append('file', selectedFile);
+                formData.append('process_type', 'index_to_pinecone');
+                formData.append('user_id', currentUser.uid);
+                formData.append('session_id', currentSessionId || `session_${currentUser.uid}_${Date.now()}`);
+                formData.append('file_name', selectedFile.name);
+                formData.append('file_type', selectedFile.type);
+                formData.append('file_size', selectedFile.size);
+                
+                const response = await fetch('/api/chatbot/upload-document', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    pineconeUploadBtn.classList.remove('uploading');
+                    pineconeUploadBtn.classList.add('success');
+                    pineconeUploadBtn.innerHTML = '<i class="fas fa-check"></i> Uploaded to Pinecone!';
+                    
+                    showMessage('success', `✅ Document "${selectedFile.name}" indexed to Pinecone RAG!`);
+                    
+                    addMessageWithMetadata('assistant', `I've successfully indexed "${selectedFile.name}" to the Pinecone knowledge base. You can now ask questions about this document!`, 'rag', null, false, 'N/A');
+                    
+                    setTimeout(() => {
+                        pineconeUploadBtn.classList.remove('success');
+                        pineconeUploadBtn.innerHTML = '<i class="fas fa-database"></i> Upload to Pinecone RAG';
+                        pineconeUploadBtn.disabled = false;
+                        removeSelectedFile();
+                    }, 3000);
+                    
+                } else {
+                    throw new Error(result.error || 'Upload failed');
+                }
+                
+            } catch (error) {
+                console.error('❌ Pinecone upload error:', error);
+                
+                pineconeUploadBtn.classList.remove('uploading');
+                pineconeUploadBtn.classList.add('error');
+                pineconeUploadBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Upload Failed';
+                
+                showMessage('error', `Failed to upload to Pinecone: ${error.message}`);
+                
+                setTimeout(() => {
+                    pineconeUploadBtn.classList.remove('error');
+                    pineconeUploadBtn.innerHTML = '<i class="fas fa-database"></i> Upload to Pinecone RAG';
+                    pineconeUploadBtn.disabled = false;
+                }, 3000);
+            }
+        }
+
+        // ====================
+        // Voice Recording Functions
+        // ====================
+        function toggleVoiceRecording() {
+            if (!currentUser) {
+                showMessage('warning', 'Please sign in first to use voice recording');
+                return;
+            }
+            
+            if (isRecording) {
+                stopVoiceRecording();
+            } else {
+                startVoiceRecording();
+            }
+        }
+
+        function initSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            
+            if (!SpeechRecognition) {
+                showMessage('error', 'Voice recognition is not supported in your browser. Please use Chrome, Edge, or Safari.');
+                return null;
+            }
+            
+            recognition = new SpeechRecognition();
+            
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+            recognition.maxAlternatives = 1;
+            
+            recognition.onstart = function() {
+                console.log('🎤 Speech recognition started');
+                isRecording = true;
+                finalTranscript = '';
+                
+                voiceBtn.classList.add('recording');
+                voiceStatus.classList.add('active', 'recording');
+                messageInput.disabled = true;
+                
+                recordingStartTime = Date.now();
+                updateRecordingTimer();
+                recordingTimer = setInterval(updateRecordingTimer, 1000);
+                
+                showMessage('info', 'Recording started... Speak clearly (up to 2 minutes).');
+            };
+            
+            recognition.onresult = function(event) {
+                let interimTranscript = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+                
+                if (interimTranscript.length > 0) {
+                    voiceTimer.textContent = 'Listening...';
+                }
+            };
+            
+            recognition.onerror = function(event) {
+                console.error('Speech recognition error:', event.error);
+                
+                if (event.error === 'no-speech') {
+                    showMessage('warning', 'No speech detected. Please speak louder or check your microphone.');
+                } else if (event.error === 'audio-capture') {
+                    showMessage('error', 'No microphone found. Please check your microphone connection.');
+                } else if (event.error === 'not-allowed') {
+                    showMessage('error', 'Microphone access was denied. Please allow microphone access in your browser settings.');
+                } else {
+                    showMessage('error', `Voice recognition error: ${event.error}`);
+                }
+                
+                cleanupVoiceRecording();
+            };
+            
+            recognition.onend = function() {
+                console.log('🎤 Speech recognition ended');
+                cleanupVoiceRecording();
+                
+                if (finalTranscript.trim().length > 0) {
+                    processTranscribedText(finalTranscript);
+                } else {
+                    showMessage('warning', 'No speech was detected. Please try again.');
+                }
+            };
+            
+            return recognition;
+        }
+
+        function startVoiceRecording() {
+            if (isRecording) {
+                console.log('Already recording');
+                return;
+            }
+            
+            try {
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    navigator.mediaDevices.getUserMedia({ audio: true })
+                        .then(function(stream) {
+                            stream.getTracks().forEach(track => track.stop());
+                            
+                            if (!recognition) {
+                                recognition = initSpeechRecognition();
+                                if (!recognition) {
+                                    return;
+                                }
+                            }
+                            
+                            finalTranscript = '';
+                            recognition.start();
+                        })
+                        .catch(function(error) {
+                            console.error('Microphone access error:', error);
+                            showMessage('error', 'Microphone access was denied. Please allow microphone access to use voice recording.');
+                        });
+                } else {
+                    if (!recognition) {
+                        recognition = initSpeechRecognition();
+                        if (!recognition) {
+                            return;
+                        }
+                    }
+                    
+                    finalTranscript = '';
+                    recognition.start();
+                }
+            } catch (error) {
+                console.error('Error starting voice recording:', error);
+                showMessage('error', 'Failed to start voice recording. Please try again.');
+                cleanupVoiceRecording();
+            }
+        }
+
+        function stopVoiceRecording(cancelled = false) {
+            if (!isRecording || !recognition) return;
+            
+            try {
+                recognition.stop();
+                
+                if (cancelled) {
+                    console.log('🎤 Voice recording cancelled');
+                    showMessage('info', 'Recording cancelled');
+                }
+            } catch (error) {
+                console.error('Error stopping recognition:', error);
+                cleanupVoiceRecording();
+            }
+        }
+
+        function cleanupVoiceRecording() {
+            if (recordingTimer) {
+                clearInterval(recordingTimer);
+                recordingTimer = null;
+            }
+            
+            voiceBtn.classList.remove('recording');
+            voiceStatus.classList.remove('active', 'recording');
+            messageInput.disabled = false;
+            
+            isRecording = false;
+            recordingStartTime = null;
+            voiceTimer.textContent = '00:00';
+        }
+
+        function updateRecordingTimer() {
+            if (!recordingStartTime) return;
+            
+            const elapsed = Date.now() - recordingStartTime;
+            const minutes = Math.floor(elapsed / 60000);
+            const seconds = Math.floor((elapsed % 60000) / 1000);
+            
+            voiceTimer.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            if (elapsed >= 120000) {
+                stopVoiceRecording();
+                showMessage('info', 'Recording stopped automatically after 2 minutes');
+            }
+        }
+
+        function processTranscribedText(text) {
+            text = text.trim();
+            
+            if (!text || text.length === 0) {
+                showMessage('warning', 'No speech detected');
+                return;
+            }
+            
+            text = text.replace(/\s+/g, ' ').trim();
+            
+            messageInput.value = text;
+            messageInput.style.height = 'auto';
+            messageInput.style.height = (messageInput.scrollHeight > 60 ? messageInput.scrollHeight : 60) + 'px';
+            messageInput.focus();
+            sendBtn.disabled = false;
+            
+            showMessage('success', 'Voice message transcribed! Click Send or press Enter to send.');
+        }
+
+        // ====================
+        // Chat History Functions
+        // ====================
+        async function loadSessions() {
+            if (!currentUser) return;
+            
+            try {
+                const token = await currentUser.getIdToken();
+                
+                const response = await fetch('/api/chatbot/sessions', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    sessions = data.sessions || [];
+                    renderChatHistory();
+                }
+            } catch (error) {
+                console.error('Error loading sessions:', error);
+            }
+        }
+
+        function renderChatHistory() {
+            chatHistory.innerHTML = '';
+            
+            const newChatItem = document.createElement('div');
+            newChatItem.className = 'history-item';
+            newChatItem.style.background = 'var(--primary-color)';
+            newChatItem.style.color = 'white';
+            newChatItem.style.cursor = 'pointer';
+            newChatItem.style.marginBottom = '10px';
+            newChatItem.style.borderRadius = '8px';
+            newChatItem.onclick = async () => {
+                await createNewChat();
+            };
+            
+            newChatItem.innerHTML = `
+                <div style="text-align: center; padding: 10px; width: 100%;">
+                    <i class="fas fa-plus" style="margin-right: 8px;"></i>
+                    <strong>Start New Chat</strong>
+                </div>
+            `;
+            
+            chatHistory.appendChild(newChatItem);
+            
+            const sortedSessions = sessions.sort((a, b) => {
+                const aPinned = pinnedChats[a.session_id] || false;
+                const bPinned = pinnedChats[b.session_id] || false;
+                
+                if (aPinned && !bPinned) return -1;
+                if (!aPinned && bPinned) return 1;
+                
+                const aDate = new Date(a.last_activity || 0);
+                const bDate = new Date(b.last_activity || 0);
+                return bDate - aDate;
+            });
+            
+            sortedSessions.forEach(session => {
+                const isActive = session.session_id === currentSessionId;
+                const isPinned = pinnedChats[session.session_id] || false;
+                
+                const chatName = chatNames[session.session_id] || session.chat_name || 'Medical Chat';
+                
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                historyItem.setAttribute('data-session-id', session.session_id);
+                
+                if (isActive) {
+                    historyItem.classList.add('active');
+                }
+                
+                historyItem.onclick = async function(e) {
+                    if (!e.target.closest('.history-dot-menu') && !e.target.closest('.history-actions-menu')) {
+                        await loadSpecificChatSession(session.session_id);
+                    }
+                };
+                
+                historyItem.innerHTML = `
+                    <div class="history-item-content">
+                        <div class="history-title">
+                            <i class="fas fa-comment-medical" style="font-size: 12px; margin-right: 8px; color: ${isActive ? 'var(--primary-color)' : 'var(--text-secondary)'}"></i>
+                            ${escapeHtml(chatName)}
+                            ${isActive ? '<span style="color: var(--primary-color); font-size: 10px; margin-left: 5px;">●</span>' : ''}
+                            ${isPinned ? '<span style="color: #f59e0b; font-size: 10px; margin-left: 5px;"><i class="fas fa-thumbtack"></i></span>' : ''}
+                        </div>
+                    </div>
+                    <button class="history-dot-menu">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                `;
+                
+                const dotMenu = historyItem.querySelector('.history-dot-menu');
+                dotMenu.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    showActionsMenu(session.session_id, e);
+                });
+                
+                chatHistory.appendChild(historyItem);
+            });
+        }
+
+        async function loadSpecificChatSession(sessionId) {
+            if (!currentUser || !sessionId) return;
+            
+            try {
+                const token = await currentUser.getIdToken();
+                
+                const response = await fetch(`/api/chatbot/session/${sessionId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    chatMessages.innerHTML = '';
+                    welcomeScreen.style.display = 'none';
+                    
+                    if (data.messages && data.messages.length > 0) {
+                        data.messages.forEach(chat => {
+                            if (chat.role === 'user') {
+                                addUserMessage(chat.message);
+                            } else if (chat.role === 'assistant') {
+                                // For loaded messages, we don't have response time, so use default
+                                addMessageWithMetadata('assistant', chat.message, chat.source || 'model', chat.sources, false, 'N/A');
+                            }
+                        });
+                    }
+                    
+                    currentSessionId = sessionId;
+                    
+                    const chatTitle = data.chat_name || chatNames[sessionId] || 'Medical Chat';
+                    document.getElementById('currentChatTitle').textContent = chatTitle;
+                    
+                    if (data.chat_name && !chatNames[sessionId]) {
+                        chatNames[sessionId] = data.chat_name;
+                        localStorage.setItem('medicalAssistant_chatNames', JSON.stringify(chatNames));
+                    }
+                    
+                    updateHistoryListHighlight(sessionId);
+                    
+                    showMessage('success', 'Chat loaded successfully!');
+                }
+            } catch (error) {
+                console.error('Error loading session:', error);
+                showMessage('error', 'Failed to load chat session');
+            }
+        }
+
+        function updateHistoryListHighlight(activeSessionId) {
+            const historyItems = document.querySelectorAll('.history-item');
+            historyItems.forEach(item => {
+                item.classList.remove('active');
+                const sessionIdAttr = item.getAttribute('data-session-id');
+                if (sessionIdAttr === activeSessionId) {
+                    item.classList.add('active');
+                }
+            });
+        }
+
+        async function updateChatHistory() {
+            if (currentUser) {
+                await loadSessions();
+            }
+        }
+
+        function showActionsMenu(sessionId, event) {
+            event.stopPropagation();
+            closeActionsMenu();
+            
+            const dotMenu = event.target.closest('.history-dot-menu');
+            if (dotMenu) {
+                dotMenu.classList.add('active');
+            }
+            
+            const menu = document.createElement('div');
+            menu.className = 'history-actions-menu active';
+            menu.setAttribute('data-session-id', sessionId);
+            
+            const isPinned = pinnedChats[sessionId] || false;
+            
+            menu.innerHTML = `
+                <button class="history-action-item pin ${isPinned ? 'active' : ''}" data-action="pin" data-session-id="${sessionId}">
+                    <i class="fas fa-thumbtack"></i>
+                    <span>${isPinned ? 'Unpin Chat' : 'Pin Chat'}</span>
+                </button>
+                <button class="history-action-item" data-action="rename" data-session-id="${sessionId}">
+                    <i class="fas fa-edit"></i>
+                    <span>Rename Chat</span>
+                </button>
+                <button class="history-action-item" data-action="share" data-session-id="${sessionId}">
+                    <i class="fas fa-share-alt"></i>
+                    <span>Share Chat</span>
+                </button>
+                <button class="history-action-item delete" data-action="delete" data-session-id="${sessionId}">
+                    <i class="fas fa-trash"></i>
+                    <span>Delete Chat</span>
+                </button>
+            `;
+            
+            const rect = event.target.getBoundingClientRect();
+            menu.style.position = 'fixed';
+            menu.style.top = `${rect.bottom + 5}px`;
+            menu.style.left = `${rect.left}px`;
+            
+            document.body.appendChild(menu);
+            activeActionsMenu = menu;
+            
+            menu.addEventListener('click', function(e) {
+                const target = e.target.closest('.history-action-item');
+                if (!target) return;
+                
+                const action = target.getAttribute('data-action');
+                const sessionId = target.getAttribute('data-session-id');
+                
+                if (action === 'pin') {
+                    togglePinChat(sessionId);
+                } else if (action === 'rename') {
+                    renameChat(sessionId);
+                } else if (action === 'share') {
+                    shareChat(sessionId);
+                } else if (action === 'delete') {
+                    deleteChat(sessionId);
+                }
+            });
+            
+            setTimeout(() => {
+                document.addEventListener('click', closeActionsMenuOnClick);
+            }, 10);
+        }
+
+        function closeActionsMenu() {
+            if (activeActionsMenu) {
+                activeActionsMenu.remove();
+                activeActionsMenu = null;
+            }
+            
+            document.querySelectorAll('.history-dot-menu').forEach(menu => {
+                menu.classList.remove('active');
+            });
+            
+            document.removeEventListener('click', closeActionsMenuOnClick);
+        }
+
+        function closeActionsMenuOnClick(event) {
+            if (activeActionsMenu && !activeActionsMenu.contains(event.target) && 
+                !event.target.closest('.history-dot-menu')) {
+                closeActionsMenu();
+            }
+        }
+
+        function togglePinChat(sessionId) {
+            if (pinnedChats[sessionId]) {
+                delete pinnedChats[sessionId];
+                showMessage('info', 'Chat unpinned');
+            } else {
+                pinnedChats[sessionId] = true;
+                showMessage('success', 'Chat pinned to top');
+            }
+            
+            localStorage.setItem('medicalAssistant_pinnedChats', JSON.stringify(pinnedChats));
+            
+            if (currentUser) {
+                loadSessions();
+            }
+            
+            closeActionsMenu();
+        }
+
+        function renameChat(sessionId) {
+            const currentName = chatNames[sessionId] || 'Medical Chat';
+            const newName = prompt('Enter a new name for this chat:', currentName);
+            
+            if (newName && newName.trim() !== '' && newName !== currentName) {
+                chatNames[sessionId] = newName.trim();
+                localStorage.setItem('medicalAssistant_chatNames', JSON.stringify(chatNames));
+                showMessage('success', 'Chat renamed successfully');
+                
+                if (currentSessionId === sessionId) {
+                    document.getElementById('currentChatTitle').textContent = newName.trim();
+                }
+                
+                if (currentUser) {
+                    loadSessions();
+                }
+            }
+            
+            closeActionsMenu();
+        }
+
+        async function deleteChat(sessionId) {
+            if (!confirm('Are you sure you want to delete this chat? This action cannot be undone.')) {
+                closeActionsMenu();
+                return;
+            }
+            
+            try {
+                const token = await currentUser.getIdToken();
+                
+                const response = await fetch(`/api/chatbot/session/${sessionId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    delete pinnedChats[sessionId];
+                    delete chatNames[sessionId];
+                    
+                    localStorage.setItem('medicalAssistant_pinnedChats', JSON.stringify(pinnedChats));
+                    localStorage.setItem('medicalAssistant_chatNames', JSON.stringify(chatNames));
+                    
+                    showMessage('success', 'Chat deleted successfully');
+                    
+                    if (currentSessionId === sessionId) {
+                        await createNewChat();
+                    }
+                    
+                    await loadSessions();
+                } else {
+                    throw new Error('Failed to delete chat');
+                }
+            } catch (error) {
+                console.error('Error deleting chat:', error);
+                showMessage('error', 'Failed to delete chat');
+            }
+            
+            closeActionsMenu();
+        }
+
+        function shareChat(sessionId) {
+            const session = sessions.find(s => s.session_id === sessionId);
+            const chatName = chatNames[sessionId] || session?.chat_name || 'Medical Chat';
+            
+            const baseUrl = window.location.origin;
+            const shareToken = btoa(JSON.stringify({
+                sessionId: sessionId,
+                timestamp: Date.now()
+            }));
+            
+            const shareUrl = `${baseUrl}/share/${shareToken}`;
+            
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                showMessage('success', `Share link for "${chatName}" copied to clipboard!`);
+            }).catch(err => {
+                console.error('Copy failed:', err);
+                showMessage('error', 'Failed to copy link');
+            });
+            
+            closeActionsMenu();
+        }
+
+        // ====================
+        // Utility Functions
+        // ====================
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function getRandomColor() {
+            const colors = ['#10a37f', '#3b82f6', '#8b5cf6', '#ef4444', '#f59e0b', '#06b6d4'];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showMessage('success', 'Copied to clipboard');
+            }).catch(err => {
+                console.error('Copy failed:', err);
+            });
+        }
+
+        function showMessage(type, text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#10a37f' : type === 'error' ? '#ef4444' : '#3b82f6'};
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 1000;
+                animation: slideIn 0.3s ease;
+            `;
+            
+            // Handle multiline messages
+            if (text.includes('\n')) {
+                const lines = text.split('\n');
+                messageDiv.innerHTML = lines.map(line => `<div>${line}</div>`).join('');
+            } else {
+                messageDiv.textContent = text;
+            }
+            
+            document.body.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => {
+                    if (messageDiv.parentNode) {
+                        messageDiv.parentNode.removeChild(messageDiv);
+                    }
+                }, 300);
+            }, 5000);
+        }
+
+        // Add CSS for slideOut animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
